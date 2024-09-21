@@ -5,7 +5,6 @@ import sys
 import concurrent.futures
 import textwrap
 
-devnull=open('/dev/null','w')
 GPG='/usr/bin/gpg'
 CRYPTSETUP='/usr/bin/cryptsetup'
 
@@ -21,7 +20,6 @@ charsets={
 }
 charsets['?a'] = ''.join(charsets[c] for c in ('?l','?u','?d','?s'))
 
-
 class Command:
     def __init__(self, args, write_linefeed=1):
         self.args = args
@@ -34,9 +32,10 @@ class Command:
         args = [arg.replace('%1', self.param1) for arg in self.args]
         sub = subprocess.run(args,
             input=inputs.encode(),
-            stdout=devnull,
-            stderr=devnull,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
             #capture_output=True,
+            close_fds=False,
             env={},
             timeout=30)
         print(passphrase, ':', ' '.join(args), '->', sub.returncode)
@@ -90,10 +89,10 @@ profiles={
             "--passphrase-fd", "0",
             "--pinentry-mode", "loopback",
             "--batch",
-            "--no-tty",
+            #"--no-tty",
             "--dry-run",
             "--export-secret-keys",
-            "-o", "/dev/null"
+            #"-o", "-"
         ]),
         #'gpg-symmetric': Command( [ GPG, "--passphrase-fd", "0", "--batch", "--no-tty", "--decrypt", "%1" ] ),
         'luks': Command( [ CRYPTSETUP, "--test-passphrase", "--key-file", "/dev/fd/0", "open", "--type", "luks", "%1" ], write_linefeed=0 ),
@@ -137,7 +136,7 @@ def main():
 
     for k in range(1+args.increment_count):
         with concurrent.futures.ProcessPoolExecutor(args.nproc) as pool:
-            for pw,ok in zip(gen.generate(), pool.map(prof.test, gen.generate(), chunksize=1)):
+            for pw,ok in zip(gen.generate(), pool.map(prof.test, gen.generate(), chunksize=128)):
                 if ok:
                     pool.shutdown(wait=False, cancel_futures=True)
                     print()
