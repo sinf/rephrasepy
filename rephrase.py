@@ -123,6 +123,7 @@ def main():
     ap.add_argument('-c', '--increment-count', type=int, default=10,
         help='Number of increments done total. Default 10')
     ap.add_argument('-n', '--nproc', type=int, default=4)
+    ap.add_argument('-o', '--output', type=str, default='-')
     args=ap.parse_args()
 
     for i in range(1,5):
@@ -143,6 +144,9 @@ def main():
                     print('success:')
                     print(pw)
                     print()
+                    if args.output != '-':
+                        with open(args.output, 'w') as f:
+                            print(pw, file=f)
                     return
         if not args.increment_mask:
             break
